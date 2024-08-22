@@ -80,13 +80,17 @@ def login():
         cur.execute(query, (username, password))
         results = cur.fetchone()
         if results:
+            query = "SELECT membership.Validity, roles.Role, roles.UserID FROM membership INNER JOIN roles ON membership.UserID=roles.UserID WHERE roles.UserID = '" + username + "'"
+            results = execute_query(cur, query)
             print(results)
-            session['UserID'] = results[0]
-            query = "SELECT * FROM roles WHERE UserID = %s"
-            cur.execute(query, (session['UserID'],))
-            results = cur.fetchone()
-            session['role'] = results[1]
-            return redirect(url_for('success'))
+            session['validity'] = results[0][0]
+            session['role'] = results[0][1]
+            session['userID'] = results[0][2]
+            if session['validity'] > datetime.date(datetime.now()):
+                return redirect(url_for("success"))
+            else:
+                return "Inactive account", 401
+            
         else:
             return "Invalid username or password", 401
     else:
