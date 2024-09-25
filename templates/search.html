@@ -1,0 +1,140 @@
+<div class="infobar">
+        <!-- Book Information Section -->
+        <div id="book-info">
+            <h3>Book Information</h3>
+            <p><strong>ISBN:</strong> {{ book.ISBN }}</p>
+            <p><strong>Title:</strong> {{ book.title }}</p>
+            <p><strong>Author:</strong> {{ book.author }}</p>
+            <p><strong>Abstract:</strong> {{ book.abstract }}</p>
+            <p><strong>Available:</strong> {{ 'No' if book.stock.InStock == 0 else book.stock.InStock }}</p>
+            <p><strong>Showing:</strong> {{ current_index }} / {{ total_books }}</p>
+
+            <!-- Reservation -->
+            <div id="reservation">
+                <button id="reserve">Add to cart</button><br>
+                <span id="reservation-message"></span>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div id="navigation-controls">
+                <button id="prev-book" {% if current_index == 1 %}class="hidden"{% endif %}>Previous</button>
+                <button id="next-book" {% if current_index == total_books %}class="hidden"{% endif %}>Next</button>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div id="filter-section">
+            <h3>Filter Books</h3>
+            <form method="GET" action="{{ url_for('admin') }}">
+                <label for="category">Category:</label>
+                <select id="category" name="category">
+                    <option value="">Select Category</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" value="{{request.args.get('title', '') }}">
+                <label for="author">Author:</label>
+                <input type="text" id="author" name="author" value="{{ request.args.get('author', '') }}">
+                <label for="isbn">ISBN:</label>
+                <input type="text" id="isbn" name="isbn" value="{{ request.args.get('isbn', '') }}">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <!-- Reserved Books Section -->
+        <div id="reserved-books">
+            <h3>Cart</h3>
+            <table id="reserved-books-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>ISBN</th>
+                        <th>Remove</th>
+                    </tr>
+                </thead>
+                <tbody id="reserved-books-tbody">
+                    {% for isbn, title in session.cart.items() %}
+                        <tr>
+                            <td>{{ title }}</td>
+                            <td>{{ isbn }}</td>
+                            <td><button class="remove-book" data-isbn="{{ isbn }}">Remove</button></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+       
+    </div>
+    <script>
+        var cart = {{ session.cart | tojson }};
+
+        document.getElementById('prev-book').onclick = function() {
+            window.location.href = "{{ prev_url }}";
+        };
+
+        document.getElementById('next-book').onclick = function() {
+            window.location.href = "{{ next_url }}";
+        };
+
+        document.getElementById('reserve').onclick = function() {
+            // get the current book's ISBN and title
+            var isbn = "{{ book.ISBN }}";
+            var title = "{{ book.title }}";
+        
+            // check if book is already in cart
+            if (cart[isbn]) {
+                document.getElementById('reservation-message').innerHTML = "You already have this book in your cart.";
+                return;
+            }
+        
+            // add book to cart
+            cart[isbn] = title;
+        
+            // make an AJAX request to update the session cart
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/update_cart', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({ isbn: isbn, title: title }));
+        
+            // update reserved books table
+            var tableBody = document.getElementById('reserved-books-tbody');
+            var newRow = tableBody.insertRow();
+            newRow.innerHTML = `
+                <td>${title}</td>
+                <td>${isbn}</td>
+                <td><button class="remove-book" data-isbn="${isbn}">Remove</button></td>
+            `;
+        
+            // update reservation message
+            document.getElementById('reservation-message').innerHTML = "Book added to cart successfully!";
+        };
+
+        
+        var removeButtons = document.querySelectorAll('.remove-book');
+        for (var i = 0; i < removeButtons.length; i++) {
+            removeButtons[i].addEventListener('click', function() {
+                var isbn = this.getAttribute('data-isbn');
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/remove_from_cart', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send(JSON.stringify({ isbn: isbn }));
+
+                // remove the row from the table
+                var row = this.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+
+                // update the cart variable
+                delete cart[isbn];
+
+                // update the reservation message
+                document.getElementById('reservation-message').innerHTML = "Book removed from cart successfully!";
+            });
+        }
+
+        
+    </script>
+    

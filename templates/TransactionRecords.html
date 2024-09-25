@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC Learning Resource Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminStyle.css') }}">
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>ABC Learning Resource Center</h1>
+        </div>
+        <div>
+            Transaction records
+        </div>
+    </div>
+
+    {% if session.role == 'administrator' %}
+        {% include 'navbar.html' %}
+    {% else %}
+        {% include 'memnavbar.html' %}
+    {% endif %}
+
+    <h3>Reservation Records</h3>
+    <div class="infobar">
+        <div class="book-info">
+            <table id="reserved-books-table">
+                <thead>
+                    <tr>
+                        <th>Transaction No</th>
+                        <th>Date Reserved</th>
+                        <th>ISBN</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="reserved-books-tbody">
+                    {% for record in reservation_records %}
+                        <tr>
+                            <td>{{ record[1] }}</td>
+                            <td>{{ record[2] }}</td>
+                            <td>{{ record[3] }}</td>
+                            <td>{{ record[4] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <h3>Borrowing Records</h3>
+    <div class="infobar">
+        <div class="book-info">
+            <table id="reserved-books-table">
+                <thead>
+                    <tr>
+                        <th>Transaction No</th>
+                        <th>Date Borrowed</th>
+                        <th>ISBN</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="reserved-books-tbody">
+                    {% for record in borrow_records %}
+                        <tr>
+                            <td>{{ record[1] }}</td>
+                            <td>{{ record[2] }}</td>
+                            <td>{{ record[3] }}</td>
+                            <td>{{ record[4] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+        </div>
+    </div>
+</body>
+</html>

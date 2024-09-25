@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ABC Learning Resource Center</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/AdminStyle.css') }}"
+    />
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <h1>ABC Learning Resource Center</h1>
+      </div>
+      <div>Borrowing</div>
+    </div>
+
+    {% if session.role == 'administrator' %} {% include 'navbar.html' %} {% else
+    %} {% include 'memnavbar.html' %} {% endif %}
+    <div class="tabs" style="margin: 1vw">
+      <input
+        type="radio"
+        class="tabs__radio"
+        name="tabs-example"
+        id="tab1"
+        checked
+      />
+      <label for="tab1" class="tabs__label">Manual Entry</label>
+      <div class="tabs__content">{% include 'search.html' %}</div>
+      <input type="radio" class="tabs__radio" name="tabs-example" id="tab2" />
+      <label for="tab2" class="tabs__label">Reservation</label>
+      <div class="tabs__content">
+        <h3>Search transaction record</h3>
+        <div class="records">
+          <div class="book-info">
+            Enter Member's ID No.:<br />
+            <form method="GET" action="{{ url_for('borrow') }}">
+              <input
+                type="text"
+                id="userID"
+                name="userID"
+                value="{{request.args.get('userID', '') }}"
+              />
+              <button type="submit">Search</button>
+            </form>
+            <table id="reserved-books-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>ISBN</th>
+                  <th>Remove</th>
+                </tr>
+              </thead>
+              <tbody id="reserved-books-tbody">
+                {% for item in reservation_records %}
+                <tr>
+                  <td>{{ item[1] }}</td>
+                  <td>{{ item[2] }}</td>
+                  <td>
+                    <button class="remove-book" data-isbn="{{ item[2] }}">
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <div id="transaction-receipt"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% include 'manualbuttons.html' %}
+    <script>
+        document.querySelectorAll('.remove-book').forEach(button => {
+            button.addEventListener('click', event => {
+                const isbn = event.target.getAttribute('data-isbn');
+                const userID = {{ request.args.get('userID', '') }};
+
+                // Make AJAX request to delete reservation record
+                fetch('/delete_reservation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ isbn, userID })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the table row from the DOM
+                        event.target.parentNode.parentNode.remove();
+                    } else {
+                        alert('Error deleting reservation record');
+                    }
+                })
+                .catch(error => console.error(error))
+            });
+        });
+
+        document.getElementById('Clear').addEventListener('click', event => {
+            document.querySelectorAll('.remove-book').forEach(button => {
+              button.click();
+            });
+        });
+
+        document.getElementById('Confirm').onclick = function() {
+            // Initialize the cart object
+            var cart = {
+                userID: document.getElementById('userID').value,
+                items: []
+            };
+
+            // Iterate over the table rows
+            document.querySelectorAll('#reserved-books-tbody tr').forEach(row => {
+                // Extract the title, ISBN, and other relevant data from the row
+                var title = row.cells[0].textContent;
+                var isbn = row.cells[1].textContent;
+
+                // Add the data to the cart object
+                cart.items.push({
+                    title: title,
+                    isbn: isbn
+                });
+            });
+
+            // Send the cart data to the server
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/borrow_item', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(cart));
+
+            // Handle the server response
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                // success
+                document.querySelectorAll('.remove-book').forEach(button => {
+                    button.click();
+                });
+                window.location.href = '/receipt';
+                } else {
+                // fail
+                }
+            };
+        };
+
+        var cart = {{ session.cart | tojson }};
+
+        document.getElementById('prev-book').onclick = function() {
+            window.location.href = "{{ prev_url }}";
+        };
+
+        document.getElementById('next-book').onclick = function() {
+            window.location.href = "{{ next_url }}";
+        };
+
+        document.getElementById('add').addEventListener('click', function(event) {
+            console.log("Reserve function called");
+            // get the current book's ISBN and title
+            var isbn = "{{ book.ISBN }}";
+            var title = "{{ book.title }}";
+
+            // check if book is already in cart
+            if (cart[isbn]) {
+                document.getElementById('reservation-message').innerHTML = "You already have this book in your cart.";
+                return;
+            }
+
+            // add book to cart
+            cart[isbn] = title;
+
+            // make an AJAX request to update the session cart
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/update_cart', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({ isbn: isbn, title: title })); // Add the closing parenthesis here
+
+            // update reserved books table
+            var tableBody = document.getElementById('reserved-books-tbody');
+            var newRow = tableBody.insertRow();
+            newRow.innerHTML = `
+                <td>${title}</td>
+                <td>${isbn}</td>
+                <td><button class="remove-book" data-isbn="${isbn}">Remove</button></td>
+            `;
+
+            // update reservation message
+            document.getElementById('reservation-message').innerHTML = "Book added to cart successfully!";
+        });
+
+        document.getElementById('Clear').onclick = function() {
+            // make an AJAX request to clear the cart
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/clear_cart', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send();
+
+            // clear the reserved books table
+            var tableBody = document.getElementById('reserved-books-tbody');
+            while (tableBody.firstChild) {
+                tableBody.removeChild(tableBody.firstChild);
+            }
+
+            // update the cart variable
+            cart = {};
+
+            // update the reservation message
+            document.getElementById('reservation-message').innerHTML = "Cart cleared successfully!";
+        };
+        var removeButtons = document.querySelectorAll('.remove-book');
+        for (var i = 0; i < removeButtons.length; i++) {
+            removeButtons[i].addEventListener('click', function() {
+                var isbn = this.getAttribute('data-isbn');
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/remove_from_cart', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send(JSON.stringify({ isbn: isbn }));
+
+                // remove the row from the table
+                var row = this.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+
+                // update the cart variable
+                delete cart[isbn];
+
+                // update the reservation message
+                document.getElementById('reservation-message').innerHTML = "Book removed from cart successfully!";
+            });
+        }
+    </script>
+  </body>
+</html>

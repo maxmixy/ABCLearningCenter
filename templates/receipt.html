@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC Learning Resource Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminStyle.css') }}">
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>ABC Learning Resource Center</h1>
+        </div>
+        <div>
+            Borrow receipt
+        </div>
+    </div>
+
+    <div class="transaction-data">
+        <h2>Transaction Data</h2>
+
+        <h4>Transaction No.: {{ transaction_data[0].TransactionNo }} <br></h4>
+        <h4>Date Borrowed: {{ transaction_data[0].Borrowed }} <br></h4>
+        <h4>Due By:  {{ transaction_data[0].Due }} <br></h4>
+        <table>
+            <tr>
+                <th>ISBN</th>
+                <th>Title</th>
+            </tr>
+            {% for book in transaction_data[0].Items %}
+            <tr>
+                <td>{{ book.ISBN }}</td>
+                <td>{{ book.Title }}</td>
+            </tr>
+            {% endfor %}
+        </table><br>
+
+        <h2>By signing, I confirm receipt of the books in good condition and agree to pay ₱20 per day for late returns, with full payment required for any loss or damage.</h2>
+        <br><br>
+        <h4>{{ transaction_data[0].Name }}</h4>
+        <h4>Signature over printed name</h4>
+    </div>
+
+    <a href="/borrowing">Back</a>
+</body>
+</html>

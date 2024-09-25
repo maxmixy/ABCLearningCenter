@@ -1,0 +1,96 @@
+<div style="margin: 1vw">
+  <!-- Function Buttons -->
+  <button
+    id="ClearMan"
+    style="
+      background-color: #337ab7;
+      color: #fff;
+      padding: 0.5em 1em;
+      border: none;
+      border-radius: 0.5em;
+      cursor: pointer;
+      position: relative;
+    "
+  >
+    Clear reservations
+  </button>
+  <button
+    id="ConfirmMan"
+    style="
+      background-color: #337ab7;
+      color: #fff;
+      padding: 0.5em 1em;
+      border: none;
+      border-radius: 0.5em;
+      cursor: pointer;
+      position: relative;
+    "
+  >
+    Lend listed items
+  </button>
+</div>
+<script>
+  document.getElementById("ClearMan").addEventListener("click", function () {
+    // make an AJAX request to clear the cart
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/clear_cart", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send();
+
+    // clear the reserved books table
+    var tableBody = document.getElementById("reserved-books-tbody");
+    while (tableBody.firstChild) {
+      tableBody.removeChild(tableBody.firstChild);
+    }
+
+    // update the cart variable
+    cart = {};
+
+    // update the reservation message
+    document.getElementById("reservation-message").innerHTML =
+      "Cart cleared successfully!";
+  });
+
+  document.getElementById('ConfirmMan').onclick = function() {
+    var userID = prompt("Please enter the user ID of the borrower:");
+    if (userID !== null) {
+        // Initialize the cart object
+        var cart = {
+            userID: userID,
+            items: []
+        };
+
+        // Iterate over the table rows
+        document.querySelectorAll('#reserved-books-tbody tr').forEach(row => {
+            // Extract the title, ISBN, and other relevant data from the row
+            var title = row.cells[0].textContent;
+            var isbn = row.cells[1].textContent;
+
+            // Add the data to the cart object
+            cart.items.push({
+                title: title,
+                isbn: isbn
+            });
+        });
+
+        // Send the cart data to the server
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/borrow_item', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify(cart));
+
+        // Handle the server response
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                // success
+                document.querySelectorAll('.remove-book').forEach(button => {
+                    button.click();
+                });
+                window.location.href = '/receipt';
+            } else {
+                // fail
+            }
+        };
+    }
+};
+</script>
