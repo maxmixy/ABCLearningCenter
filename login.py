@@ -263,7 +263,7 @@ def log():
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
-    return render_template("guest.html")
+    return redirect(url_for("guest"))
 
 @app.route("/login", methods=["POST"])
 def login():
