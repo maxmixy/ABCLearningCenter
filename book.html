@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ABC Learning Resource Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminStyle.css') }}" />
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h1>ABC Learning Resource Center</h1>
+        </div>
+        <div>Book CRUD</div>
+    </div>
+
+    {% if session.role == 'administrator' %} {% include 'navbar.html' %} {% endif %}
+
+    <div class="book-info">
+        Enter Member's ID No.:<br/>
+        <form method="GET" action="{{ url_for('returning') }}">
+            <input type="text" id="userID" name="userID" value="{{request.args.get('userID', '') }}" />
+            <button type="submit">Search</button>
+        </form>
+        <table id="reserved-books-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>ISBN</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody id="reserved-books-tbody">
+                {% for item in reservation_records %}
+                <tr>
+                    <td>{{ item[1] }}</td>
+                    <td>{{ item[2] }}</td>
+                    <td>
+                        <button class="remove-book" data-isbn="{{ item[2] }}">
+                            Remove
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div id="transaction-receipt"></div>
+        <!-- Clear Button -->
+        <button id="Clear" class="btn btn-danger">Clear</button>
+
+        <!-- Confirm Borrowing Button -->
+        <button id="Confirm" class="btn btn-success">Confirm Borrowing</button>
+    </div>
+
+    <script>
+
+    </script>
+</body>
+
+</html>

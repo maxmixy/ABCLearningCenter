@@ -422,6 +422,180 @@ def borrow(index):
         query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
         result = execute_query(cur, query)
         return render_template('borrow.html',  reservation_records=result, session_role=session['role'], book=book, categories=categories, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+    
+@app.route('/returning', defaults={'index': 1})
+@app.route('/returning/<int:index>')
+def returning(index):
+
+    title = request.args.get('title', '')
+    author = request.args.get('author', '')
+    isbn = request.args.get('isbn', '')
+    category = request.args.get('category', '')
+
+    if 'cart' not in session:
+        session['cart'] = {}
+
+    cart = session['cart']
+
+    if request.method == 'POST':
+        isbn = request.form['isbn']
+        title = request.form['title']
+        if isbn not in cart:
+            cart[isbn] = title
+        session.modified = True  # Mark the session as modified
+
+    if title or author or isbn or category:
+        filtered_books = filter_books(title, author, isbn, category)
+        if filtered_books:
+            books_list = filtered_books
+            if index > len(books_list):
+                return "Invalid index", 404
+            book = books_list[index - 1] 
+            total_books = len(books_list)
+            next_url = url_for('returning', index=index + 1, title=title, author=author, isbn=isbn, category=category)
+            prev_url = url_for('returning', index=index - 1, title=title, author=author, isbn=isbn, category=category)
+            memberID = request.args.get('userID', '')
+    
+            con = create_connection()
+            cur = create_cursor(con)
+            
+            query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
+            result = execute_query(cur, query)
+            return render_template('return.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+        else:
+            return "No results found", 200
+    else:
+        books_list = books.query.all()  # Retrieve the list of books
+        if index > len(books_list):
+            return "Invalid index", 404
+        book = books_list[index - 1]  # Adjust the index to match the book list
+        total_books = len(books_list)
+        next_url = url_for('returning', index=index + 1)
+        prev_url = url_for('returning', index=index - 1)
+        memberID = request.args.get('userID', '')
+    
+        con = create_connection()
+        cur = create_cursor(con)
+        
+        query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
+        result = execute_query(cur, query)
+        return render_template('return.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+
+@app.route('/member', defaults={'index': 1})
+@app.route('/member/<int:index>')
+def member(index):
+
+    title = request.args.get('title', '')
+    author = request.args.get('author', '')
+    isbn = request.args.get('isbn', '')
+    category = request.args.get('category', '')
+
+    if 'cart' not in session:
+        session['cart'] = {}
+
+    cart = session['cart']
+
+    if request.method == 'POST':
+        isbn = request.form['isbn']
+        title = request.form['title']
+        if isbn not in cart:
+            cart[isbn] = title
+        session.modified = True  # Mark the session as modified
+
+    if title or author or isbn or category:
+        filtered_books = filter_books(title, author, isbn, category)
+        if filtered_books:
+            books_list = filtered_books
+            if index > len(books_list):
+                return "Invalid index", 404
+            book = books_list[index - 1] 
+            total_books = len(books_list)
+            next_url = url_for('member', index=index + 1, title=title, author=author, isbn=isbn, category=category)
+            prev_url = url_for('member', index=index - 1, title=title, author=author, isbn=isbn, category=category)
+            memberID = request.args.get('userID', '')
+    
+            con = create_connection()
+            cur = create_cursor(con)
+            
+            query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
+            result = execute_query(cur, query)
+            return render_template('member.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+        else:
+            return "No results found", 200
+    else:
+        books_list = books.query.all()  # Retrieve the list of books
+        if index > len(books_list):
+            return "Invalid index", 404
+        book = books_list[index - 1]  # Adjust the index to match the book list
+        total_books = len(books_list)
+        next_url = url_for('member', index=index + 1)
+        prev_url = url_for('member', index=index - 1)
+        memberID = request.args.get('userID', '')
+    
+        con = create_connection()
+        cur = create_cursor(con)
+        
+        query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
+        result = execute_query(cur, query)
+        return render_template('member.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+
+@app.route('/book', defaults={'index': 1})
+@app.route('/book/<int:index>')
+def book(index):
+
+    title = request.args.get('title', '')
+    author = request.args.get('author', '')
+    isbn = request.args.get('isbn', '')
+    category = request.args.get('category', '')
+
+    if 'cart' not in session:
+        session['cart'] = {}
+
+    cart = session['cart']
+
+    if request.method == 'POST':
+        isbn = request.form['isbn']
+        title = request.form['title']
+        if isbn not in cart:
+            cart[isbn] = title
+        session.modified = True  # Mark the session as modified
+
+    if title or author or isbn or category:
+        filtered_books = filter_books(title, author, isbn, category)
+        if filtered_books:
+            books_list = filtered_books
+            if index > len(books_list):
+                return "Invalid index", 404
+            book = books_list[index - 1] 
+            total_books = len(books_list)
+            next_url = url_for('book', index=index + 1, title=title, author=author, isbn=isbn, category=category)
+            prev_url = url_for('book', index=index - 1, title=title, author=author, isbn=isbn, category=category)
+            memberID = request.args.get('userID', '')
+    
+            con = create_connection()
+            cur = create_cursor(con)
+            
+            query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
+            result = execute_query(cur, query)
+            return render_template('book.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+        else:
+            return "No results found", 200
+    else:
+        books_list = books.query.all()  # Retrieve the list of books
+        if index > len(books_list):
+            return "Invalid index", 404
+        book = books_list[index - 1]  # Adjust the index to match the book list
+        total_books = len(books_list)
+        next_url = url_for('book', index=index + 1)
+        prev_url = url_for('book', index=index - 1)
+        memberID = request.args.get('userID', '')
+    
+        con = create_connection()
+        cur = create_cursor(con)
+        
+        query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
+        result = execute_query(cur, query)
+        return render_template('book.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
 
 @app.route('/guest', defaults={'index': 1})
 @app.route('/guest/<int:index>')
