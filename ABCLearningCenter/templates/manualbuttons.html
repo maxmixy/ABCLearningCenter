@@ -12,7 +12,7 @@
       position: relative;
     "
   >
-    Clear Cart
+    Clear reservations
   </button>
   <button
     id="ConfirmMan"
@@ -86,10 +86,9 @@
                 document.querySelectorAll('.remove-book').forEach(button => {
                     button.click();
                 });
-                window.open('/receipt', '_blank'); // Open in a new tab
-              } else {
+                window.location.href = '/receipt';
+            } else {
                 // fail
-                alert("Invalid UserID.")
             }
         };
     }

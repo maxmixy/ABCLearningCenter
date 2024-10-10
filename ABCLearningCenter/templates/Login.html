@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="AdminStyle.css">
+    <style>/* Global Styles */
+
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f0f0f0;
+        }
+        
+        /* Login Main Container Styles */
+        
+        .loginMain {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          background-color: #f0f0f0;
+        }
+        
+        /* Login Logo Styles */
+        
+        .loginLogo {
+          width: 300px;
+          height: 300px;
+          background-color: #007bff;
+          border-radius: 50%;
+          margin: 20px;
+          margin-left: 30px;
+        }
+        
+        /* Login Container Styles */
+        
+        .loginContainer {
+          background-color: #fff;
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Form Styles */
+        
+        form {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        input[type="text"], input[type="password"] {
+          width: 100%;
+          padding: 10px;
+          margin: 10px 0;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+        }
+        
+        input[type="text"]:focus, input[type="password"]:focus {
+          border-color: #007bff;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        button[type="submit"] {
+          background-color: #007bff;
+          color: #fff;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+        }
+        
+        button[type="submit"]:hover {
+          background-color: #0056b3;
+        }
+        
+        /* Responsive Design */
+        
+        @media (max-width: 768px) {
+          .loginMain {
+            flex-direction: column;
+            padding: 10px;
+          }
+          .loginLogo {
+            margin: 10px;
+            
+          }
+          .loginContainer {
+            padding: 10px;
+          }
+        }
+        </style>
+</head>
+<body> 
+    <div class="loginMain">
+        <div class="loginLogo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" width="270" height="270" style="margin-left: 23px; margin-top: 15px;">
+        </div>
+        <div class="loginContainer">
+            <form action="/login" method="post">
+                <input type="text" id="username" name="username" placeholder="Enter Username" required> 
+                <input type="password" id="password" name="password" placeholder="Enter Password" required>
+                <button type="submit">     Login     </button>
+            </form>
+        </div>
+    </div> 
+</body>
+</html> 

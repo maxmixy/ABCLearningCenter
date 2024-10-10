@@ -1,5 +1,5 @@
 import os
-from flask import Response, Flask, flash, render_template, request, redirect, url_for, session, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
 from flask_mysqldb import MySQL
 import mysql.connector
 import subprocess
@@ -16,9 +16,6 @@ db = SQLAlchemy(app)
 app.secret_key = 'pooKey'
 
 # <----------------------- DATABASE MODELS ----------------------->
-class users(db.Model):
-    UserID = db.Column(db.Integer, primary_key=True)
-
 class books(db.Model):
     ISBN = db.Column(db.String(20), primary_key=True)
     title = db.Column(db.String(100), nullable=False)
@@ -224,24 +221,14 @@ def lend_listed_items():
             'ISBN': isbn,
             'Title': book.title,
         })
-    Borrowed = now.strftime('%B %d, %Y')
-    Due = (now + timedelta(days=3)).strftime('%B %d, %Y')
+    Borrowed = now.strftime('%Y-%m-%d'),
+    Due = (now + timedelta(days=3)).strftime('%Y-%m-%d')
     query = "SELECT Fname, Lname FROM users where UserID = '" + str(user_id) + "';"
-    result = execute_query(cur, query) 
-    if  len(result) == 0:
-        flash("Invalid User ID")
-        response = redirect(url_for('borrow')) 
-        response.status_code = 201
-        return response
-
-
+    result = execute_query(cur, query)
+    
     name = result[0][0] + " " + result[0][1]
     
-    try:
-        transaction_data.append({'TransactionNo': transno,'Borrowed': Borrowed,'Due': Due, 'Items': book_list, 'Name': name})
-    except Exception as e:
-        print(f"Error appending to transaction_data: {e}")
-
+    transaction_data.append({'TransactionNo': transno,'Borrowed': Borrowed,'Due': Due, 'Items': book_list, 'Name': name})
     session['transdata'] = transaction_data
     return jsonify("")
 
@@ -250,100 +237,21 @@ def receipt():
     transact_data = session['transdata']
     return render_template("receipt.html", transaction_data=transact_data)
 
+def generate_pdf(transaction_data):
+    template = render_template('receipt.html', transaction_data=transaction_data)
+    html = template
+    config = pdfkit.configuration(wkhtmltopdf='C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe')
+    pdf = pdfkit.from_string(html, False, configuration=config)
+    response = Response(pdf, mimetype='application/pdf')
+    response.headers['Content-Disposition'] = 'attachment; filename="borrow_receipt.pdf"'
+    return response
 
-@app.route('/update_book', methods=['POST'])
-def update_book():
-    data = request.get_json()
-    book = books.query.get(data['isbn'])
-    if book:
-        book.title = data['title']
-        book.author = data['author']
-        book.abstract = data['abstract']
-        book.description = data['description']
-        book.publisher = data['publisher']
-        book.copyrightyear = data['copyrightyear']
-        book.category = data['category']
-        book.unitprice = data['unitprice']
-        book.stock.InStock = data['instock']
-        db.session.commit()
-        return 'Book details updated successfully!'
-    else:
-        return 'Book not found!', 404
+@app.route('/print', methods=['GET'])
+def generate_pdf_route():
+    transaction_data = session['transdata']  # retrieve the transaction data from the session
+    pdf_response = generate_pdf(transaction_data)  # call the generate_pdf function
+    return pdf_response
 
-@app.route('/check_isbn', methods=['GET'])
-def check_isbn():
-    isbn = request.args.get('isbn')
-    book = books.query.filter_by(ISBN=isbn).first()
-    if book:
-        return jsonify({'exists': True})
-    else:
-        return jsonify({'exists': False})
-    
-@app.route('/insert_book', methods=['POST'])
-def insert_book():
-    data = request.get_json()
-    book = books(
-        ISBN=data['isbn'],
-        title=data['title'],
-        author=data['author'],
-        abstract=data['abstract'],
-        description=data['description'],
-        publisher=data['publisher'],
-        copyrightyear=data['copyrightyear'],
-        category=data['category'],
-        unitprice=data['unitprice']
-    )
-    db.session.add(book)
-    db.session.commit()
-
-    stock = stocks(
-        ISBN=book.ISBN,
-        Qty=data['instock'],
-        InStock=data['instock']
-    )
-    db.session.add(stock)
-    db.session.commit()
-
-    return 'Book inserted successfully!'
-
-@app.route('/delete_book', methods=['POST'])
-def delete_book():
-  data = request.get_json()
-  isbn = data['isbn']
-  book = books.query.filter_by(ISBN=isbn).first()
-  stock = stocks.query.filter_by(ISBN=isbn).first()
-  if book:
-    db.session.delete(stock)
-    db.session.delete(book)
-    db.session.commit()
-    return 'Book deleted successfully!'
-  else:
-    return 'Book not found!', 404
-
-@app.route('/validate_user_id', methods=['GET'])
-def validate_user_id():
-    UserID = request.args.get('user_id')
-    user = users.query.filter_by(UserID=UserID).first()
-    if user:
-        flash('User  ID is valid', 'success')
-        return redirect(url_for('borrow'))
-    else:
-        flash('Invalid user ID. Please try again.', 'error')
-        return redirect(url_for('borrow'))
-    
-@app.route('/update-borrowed-book', methods=['POST'])
-def update_borrowed_book():
-    data = request.get_json()
-    isbn = data['isbn']
-    transaction_no = data['transactionNo']
-
-    borrow_tran = borrowtran.query.filter_by(ISBN=isbn, TransactionNo=transaction_no).first()
-    if borrow_tran:
-        borrow_tran.IsBookReturned = True
-        db.session.commit()
-        return jsonify({'message': 'Book marked as returned successfully!'})
-    else:
-        return jsonify({'error': 'Book not found!'}), 404
 # <----------------------- ROUTING ----------------------->
 @app.route("/")
 def index():
@@ -355,7 +263,6 @@ def log():
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
-    session.clear()
     return redirect(url_for("guest"))
 
 @app.route("/login", methods=["POST"])
@@ -376,18 +283,13 @@ def login():
             session['validity'] = results[0][0]
             session['role'] = results[0][1]
             session['userID'] = results[0][2]
-            query = "SELECT Fname FROM users WHERE UserID = '" + username + "'"
-            results = execute_query(cur, query)
-            session['Fname'] = results[0][0]
             if session['validity'] > datetime.date(datetime.now()):
-                
                 return redirect(url_for("success"))
             else:
-                flash('Sorry your account is currently inactive. Please update your membership account before you can continue.')
-                return redirect(url_for('guest'))
+                return "Inactive account", 401
+            
         else:
-            flash('Sorry invalid username or password')
-            return redirect(url_for('guest'))
+            return "Invalid username or password", 401
     else:
         return "Error connecting to database", 500
     
@@ -395,11 +297,9 @@ def login():
 def success():
     if session['role'] == 'administrator':
         session['cart'] = {}
-        flash('Welcome ' + session['Fname'] + ', you are logged in as an administrator')
         return redirect(url_for("admin"))
     elif session['role'] == 'member':
         session['cart'] = {}
-        flash('Welcome ' + session['Fname'] + "! Have a great time browsing books!")
         return redirect(url_for("admin"))
     else:
         return redirect(url_for("guest"))
@@ -459,26 +359,13 @@ def transaction_records():
     query = "SELECT * FROM reservetran where UserID = '" + str(session['userID']) + "';"
     reserve = execute_query(cur, query)
     
-    query = '''SELECT 
-                    b.Title, 
-                    t.ISBN, 
-                    t.DateBorrowed, 
-                    t.TransactionNo, 
-                    IF((DATEDIFF(CURRENT_DATE - INTERVAL 1 DAY, t.DateBorrowed)) * 20 < 0, 0, (DATEDIFF(CURRENT_DATE - INTERVAL 1 DAY, t.DateBorrowed)) * 20) AS PenaltyFee, 
-                    t.IsBookReturned
-                FROM 
-                    borrowtran t
-                INNER JOIN 
-                    books b ON t.ISBN = b.ISBN
-                WHERE 
-                        UserID = %s 
-                ''' % session['userID']
+    query = "SELECT * FROM borrowtran where UserID = '" + str(session['userID']) + "';"
     borrow = execute_query(cur, query)
-        
+    
     return render_template('TransactionRecords.html', reservation_records=reserve, borrow_records = borrow, session_role=session['role'])
 
 @app.route('/borrowing', defaults={'index': 1})
-@app.route('/borrowing/<int:index>', methods=['GET', 'POST'])
+@app.route('/borrowing/<int:index>')
 def borrow(index):
     categories = ['Databases', 'Communication', 'Electronic media', 'Mechatronics', 'Electronics Engineering', 'Web Design', 'Automotive', 'Electronics', 'Plumbing', 'Game Art', 'Programming', 'Utilities', 'Networking', 'Game Design', 'Game Programming', 'ICT']
 
@@ -486,9 +373,7 @@ def borrow(index):
     author = request.args.get('author', '')
     isbn = request.args.get('isbn', '')
     category = request.args.get('category', '')
-    
-    selected_tab = request.args.get('tab')  # Get the last value
-    print(selected_tab)  # Output: tab1
+
     if 'cart' not in session:
         session['cart'] = {}
 
@@ -503,7 +388,7 @@ def borrow(index):
 
     if title or author or isbn or category:
         filtered_books = filter_books(title, author, isbn, category)
-        if filtered_books: 
+        if filtered_books:
             books_list = filtered_books
             if index > len(books_list):
                 return "Invalid index", 404
@@ -518,10 +403,10 @@ def borrow(index):
             
             query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
             result = execute_query(cur, query)
-            return render_template('borrow.html',  selected_tab=selected_tab, reservation_records=result, session_role=session['role'], book=book, categories=categories, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+            return render_template('borrow.html',  reservation_records=result, session_role=session['role'], book=book, categories=categories, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
         else:
             return "No results found", 200
-    else: 
+    else:
         books_list = books.query.all()  # Retrieve the list of books
         if index > len(books_list):
             return "Invalid index", 404
@@ -536,156 +421,7 @@ def borrow(index):
         
         query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
         result = execute_query(cur, query)
-        return render_template('borrow.html' , reservation_records=result, session_role=session['role'], selected_tab=selected_tab, book=book, categories=categories, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
-    
-@app.route('/returning', defaults={'index': 1})
-@app.route('/returning/<int:index>', methods=['GET'])
-def returning(index):
-
-    if 'cart' not in session:
-        session['cart'] = {}
-
-    cart = session['cart']
-
-    if request.method == 'GET':
-        
-        con = create_connection()
-        cur = create_cursor(con)
-        query = '''SELECT 
-                    b.Title, 
-                    t.ISBN, 
-                    t.DateBorrowed, 
-                    t.TransactionNo, 
-                    IF((DATEDIFF(CURRENT_DATE - INTERVAL 1 DAY, t.DateBorrowed)) * 20 < 0, 0, (DATEDIFF(CURRENT_DATE - INTERVAL 1 DAY, t.DateBorrowed)) * 20) AS PenaltyFee, 
-                    t.IsBookReturned
-                FROM 
-                    borrowtran t
-                INNER JOIN 
-                    books b ON t.ISBN = b.ISBN
-                WHERE 
-                        UserID = %s 
-                ''' % request.args.get('userID')
-        result = execute_query(cur, query)
-        return render_template('return.html',  borrowed_books=result, session_role=session['role'], cart=cart)
-    
-    return render_template('return.html',   session_role=session['role'], cart=cart)
-
-
-@app.route('/member', defaults={'index': 1})
-@app.route('/member/<int:index>')
-def member(index):
-
-    title = request.args.get('title', '')
-    author = request.args.get('author', '')
-    isbn = request.args.get('isbn', '')
-    category = request.args.get('category', '')
-
-    if 'cart' not in session:
-        session['cart'] = {}
-
-    cart = session['cart']
-
-    if request.method == 'POST':
-        isbn = request.form['isbn']
-        title = request.form['title']
-        if isbn not in cart:
-            cart[isbn] = title
-        session.modified = True  # Mark the session as modified
-
-    if title or author or isbn or category:
-        filtered_books = filter_books(title, author, isbn, category)
-        if filtered_books:
-            books_list = filtered_books
-            if index > len(books_list):
-                return "Invalid index", 404
-            book = books_list[index - 1] 
-            total_books = len(books_list)
-            next_url = url_for('member', index=index + 1, title=title, author=author, isbn=isbn, category=category)
-            prev_url = url_for('member', index=index - 1, title=title, author=author, isbn=isbn, category=category)
-            memberID = request.args.get('userID', '')
-    
-            con = create_connection()
-            cur = create_cursor(con)
-            
-            query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
-            result = execute_query(cur, query)
-            return render_template('member.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
-        else:
-            return "No results found", 200
-    else:
-        books_list = books.query.all()  # Retrieve the list of books
-        if index > len(books_list):
-            return "Invalid index", 404
-        book = books_list[index - 1]  # Adjust the index to match the book list
-        total_books = len(books_list)
-        next_url = url_for('member', index=index + 1)
-        prev_url = url_for('member', index=index - 1)
-        memberID = request.args.get('userID', '')
-    
-        con = create_connection()
-        cur = create_cursor(con)
-        
-        query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
-        result = execute_query(cur, query)
-        return render_template('member.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
-
-@app.route('/book', defaults={'index': 1})
-@app.route('/book/<int:index>')
-def book(index):
-
-    title = request.args.get('title', '')
-    author = request.args.get('author', '')
-    isbn = request.args.get('isbn', '')
-    category = request.args.get('category', '')
-
-    if 'cart' not in session:
-        session['cart'] = {}
-
-    cart = session['cart']
-
-    if request.method == 'POST':
-        isbn = request.form['isbn']
-        title = request.form['title']
-        if isbn not in cart:
-            cart[isbn] = title
-        session.modified = True  # Mark the session as modified
-
-    if title or author or isbn or category:
-        filtered_books = filter_books(title, author, isbn, category)
-        if filtered_books:
-            books_list = filtered_books
-            if index > len(books_list):
-                return "Invalid index", 404
-            book = books_list[index - 1] 
-            total_books = len(books_list)
-            next_url = url_for('book', index=index + 1, title=title, author=author, isbn=isbn, category=category)
-            prev_url = url_for('book', index=index - 1, title=title, author=author, isbn=isbn, category=category)
-            memberID = request.args.get('userID', '')
-    
-            con = create_connection()
-            cur = create_cursor(con)
-            
-            query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
-            result = execute_query(cur, query)
-            return render_template('book.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
-        else:
-            return "No results found", 200
-    else:
-        books_list = books.query.all()  # Retrieve the list of books
-        if index > len(books_list):
-            return "Invalid index", 404
-        book = books_list[index - 1]  # Adjust the index to match the book list
-        total_books = len(books_list)
-        next_url = url_for('book', index=index + 1)
-        prev_url = url_for('book', index=index - 1)
-        memberID = request.args.get('userID', '')
-    
-        con = create_connection()
-        cur = create_cursor(con)
-        
-        query = " SELECT r.UserID, b.title, b.ISBN FROM reservetran r JOIN books b ON r.ISBN = b.ISBN WHERE r.UserID = '" + memberID + "';"
-        result = execute_query(cur, query)
-        return render_template('book.html',  reservation_records=result, session_role=session['role'], book=book, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
+        return render_template('borrow.html',  reservation_records=result, session_role=session['role'], book=book, categories=categories, current_index=index, total_books=total_books, next_url=next_url, prev_url=prev_url, cart=cart)
 
 @app.route('/guest', defaults={'index': 1})
 @app.route('/guest/<int:index>')

@@ -7,20 +7,18 @@
             <p><strong>Author:</strong> {{ book.author }}</p>
             <p><strong>Abstract:</strong> {{ book.abstract }}</p>
             <p><strong>Available:</strong> {{ 'No' if book.stock.InStock == 0 else book.stock.InStock }}</p>
+            <p><strong>Showing:</strong> {{ current_index }} / {{ total_books }}</p>
 
-            <div>
-                <!-- Reservation -->
-                <div id="reservation">
-                    <button id="reserve">Add to cart</button><br>
-                    <span id="reservation-message"></span>
-                </div>
+            <!-- Reservation -->
+            <div id="reservation">
+                <button id="reserve">Add to cart</button><br>
+                <span id="reservation-message"></span>
+            </div>
 
-                <!-- Navigation Controls -->
-                <div id="navigation-controls">
-                    <button id="prev-book" {% if current_index == 1 %}class="hidden"{% endif %}>Previous</button>
-                    <button id="next-book" {% if current_index == total_books %}class="hidden"{% endif %}>Next</button>
-                    <p><strong>Showing:</strong> {{ current_index }} / {{ total_books }}</p>
-                </div>
+            <!-- Navigation Controls -->
+            <div id="navigation-controls">
+                <button id="prev-book" {% if current_index == 1 %}class="hidden"{% endif %}>Previous</button>
+                <button id="next-book" {% if current_index == total_books %}class="hidden"{% endif %}>Next</button>
             </div>
         </div>
 

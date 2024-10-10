@@ -21,16 +21,25 @@
         </div>
     </div>
 
-    <div class="navbar">
-        <div class="nav-actions">
-            <a href="/log">Search and Reserve</a>
-            <a href="/log">Transaction Record</a> 
+    <div>
+        <div>
+            <a href="/log">Search</a> |
+            <a href="/log">Transaction Record</a> | 
         </div>
         <div>
             <a href="/log">Log in</a>
         </div>
     </div>
-
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <script>
+        {% for message in messages %}
+          alert("{{ message }}");
+        {% endfor %}
+      </script>
+    {% endif %}
+    {% endwith %}
+    <!-- Book Information Section -->
     <div class="infobar">
         <!-- Book Information Section -->
         <div id="book-info">
@@ -41,6 +50,12 @@
             <p><strong>Abstract:</strong> {{ book.abstract }}</p>
             <p><strong>Available:</strong> {{ 'No' if book.stock.InStock == 0 else book.stock.InStock }}</p>
             <p><strong>Showing:</strong> {{ current_index }} / {{ total_books }}</p>
+
+            <!-- Reservation -->
+            <div id="reservation">
+                <button id="reserve">Add to cart</button><br>
+                <span id="reservation-message"></span>
+            </div>
 
             <!-- Navigation Controls -->
             <div id="navigation-controls">
@@ -71,8 +86,17 @@
         </div>
     </div>
 
+    {% if inactive_account %}
+  <script>
+    alert("Sorry your account is currently inactive. Please update your membership account before you can continue.");
+  </script>
+{% endif %}
+{% if wrong_credentials %}
+  <script>
+    alert("Sorry invalid username or password");
+  </script>
+{% endif %}
     <script>
-        var cart = {{ session.cart | tojson }};
 
         document.getElementById('prev-book').onclick = function() {
             window.location.href = "{{ prev_url }}";
@@ -81,61 +105,6 @@
         document.getElementById('next-book').onclick = function() {
             window.location.href = "{{ next_url }}";
         };
-
-        document.getElementById('reserve').onclick = function() {
-            // get the current book's ISBN and title
-            var isbn = "{{ book.ISBN }}";
-            var title = "{{ book.title }}";
-        
-            // check if book is already in cart
-            if (cart[isbn]) {
-                document.getElementById('reservation-message').innerHTML = "You already have this book in your cart.";
-                return;
-            }
-        
-            // add book to cart
-            cart[isbn] = title;
-        
-            // make an AJAX request to update the session cart
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/update_cart', true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(JSON.stringify({ isbn: isbn, title: title }));
-        
-            // update reserved books table
-            var tableBody = document.getElementById('reserved-books-tbody');
-            var newRow = tableBody.insertRow();
-            newRow.innerHTML = `
-                <td>${title}</td>
-                <td>${isbn}</td>
-                <td><button class="remove-book" data-isbn="${isbn}">Remove</button></td>
-            `;
-        
-            // update reservation message
-            document.getElementById('reservation-message').innerHTML = "Book added to cart successfully!";
-        };
-
-        
-        var removeButtons = document.querySelectorAll('.remove-book');
-        for (var i = 0; i < removeButtons.length; i++) {
-            removeButtons[i].addEventListener('click', function() {
-                var isbn = this.getAttribute('data-isbn');
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', '/remove_from_cart', true);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.send(JSON.stringify({ isbn: isbn }));
-
-                // remove the row from the table
-                var row = this.parentNode.parentNode;
-                row.parentNode.removeChild(row);
-
-                // update the cart variable
-                delete cart[isbn];
-
-                // update the reservation message
-                document.getElementById('reservation-message').innerHTML = "Book removed from cart successfully!";
-            });
-        }
 
         
     </script>

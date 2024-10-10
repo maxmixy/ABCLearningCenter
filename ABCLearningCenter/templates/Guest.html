@@ -1,4 +1,37 @@
-<div class="infobar">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC Learning Resource Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminStyle.css') }}">
+    <style>
+        .hidden {
+            display: none;
+          }
+    </style>
+</head>
+<body> 
+    <div class="header">
+        <div>
+            <h1>ABC Learning Resource Center</h1>
+        </div>
+        <div>
+            Welcome Guest!
+        </div>
+    </div>
+
+    <div class="navbar">
+        <div class="nav-actions">
+            <a href="/log">Search and Reserve</a>
+            <a href="/log">Transaction Record</a> 
+        </div>
+        <div>
+            <a href="/log">Log in</a>
+        </div>
+    </div>
+
+    <div class="infobar">
         <!-- Book Information Section -->
         <div id="book-info">
             <h3>Book Information</h3>
@@ -7,20 +40,12 @@
             <p><strong>Author:</strong> {{ book.author }}</p>
             <p><strong>Abstract:</strong> {{ book.abstract }}</p>
             <p><strong>Available:</strong> {{ 'No' if book.stock.InStock == 0 else book.stock.InStock }}</p>
+            <p><strong>Showing:</strong> {{ current_index }} / {{ total_books }}</p>
 
-            <div>
-                <!-- Reservation -->
-                <div id="reservation">
-                    <button id="reserve">Add to cart</button><br>
-                    <span id="reservation-message"></span>
-                </div>
-
-                <!-- Navigation Controls -->
-                <div id="navigation-controls">
-                    <button id="prev-book" {% if current_index == 1 %}class="hidden"{% endif %}>Previous</button>
-                    <button id="next-book" {% if current_index == total_books %}class="hidden"{% endif %}>Next</button>
-                    <p><strong>Showing:</strong> {{ current_index }} / {{ total_books }}</p>
-                </div>
+            <!-- Navigation Controls -->
+            <div id="navigation-controls">
+                <button id="prev-book" {% if current_index == 1 %}class="hidden"{% endif %}>Previous</button>
+                <button id="next-book" {% if current_index == total_books %}class="hidden"{% endif %}>Next</button>
             </div>
         </div>
 
@@ -46,31 +71,6 @@
         </div>
     </div>
 
-    <div>
-        <!-- Reserved Books Section -->
-        <div id="reserved-books">
-            <h3>Cart</h3>
-            <table id="reserved-books-table">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>ISBN</th>
-                        <th>Remove</th>
-                    </tr>
-                </thead>
-                <tbody id="reserved-books-tbody">
-                    {% for isbn, title in session.cart.items() %}
-                        <tr>
-                            <td>{{ title }}</td>
-                            <td>{{ isbn }}</td>
-                            <td><button class="remove-book" data-isbn="{{ isbn }}">Remove</button></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-       
-    </div>
     <script>
         var cart = {{ session.cart | tojson }};
 
@@ -140,3 +140,6 @@
         
     </script>
     
+    
+</body>
+</html> 

@@ -55,41 +55,25 @@
             <table id="reserved-books-table">
                 <thead>
                     <tr>
-                        <th>Title</th>
-                        <th>ISBN</th>
+                        <th>Transaction No</th>
                         <th>Date Borrowed</th>
-                        <th>Transaction No.</th>
-                        <th>Penalty Fee</th>
-                        <th>Status</th>
+                        <th>ISBN</th>
+                        <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody id="reserved-books-tbody">
                     {% for record in borrow_records %}
                         <tr>
-                            <td>{{ record[0] }}</td>
                             <td>{{ record[1] }}</td>
                             <td>{{ record[2] }}</td>
                             <td>{{ record[3] }}</td>
                             <td>{{ record[4] }}</td>
-                            <td>{% if record[5] == 0 %}Unreturned{% else %}Returned but unpaid{% endif %}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            <h3>Total Penalty Fees: <span id="total-penalty-fees">0</span></h3>
-
+            
         </div>
     </div>
-    <script>
-        const penaltyFees = document.querySelectorAll('#reserved-books-tbody tr td:nth-child(5)');
-        const totalPenaltyFees = document.getElementById('total-penalty-fees');
-        let sum = 0;
-        
-        penaltyFees.forEach(fee => {
-            sum += parseFloat(fee.textContent);
-        });
-        
-        totalPenaltyFees.textContent = sum.toFixed(2);
-    </script>
 </body>
 </html>

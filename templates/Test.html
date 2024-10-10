@@ -17,7 +17,7 @@
             <h1>ABC Learning Resource Center</h1>
         </div>
         <div>
-            Welcome {{ session.role }}!
+            Welcome {{ session.role }}, {{ session.Fname }}!
         </div>
     </div>
 
@@ -28,6 +28,17 @@
     {% endif %}
     
     {% include 'search.html' %}
+    <input type="hidden" id="fname" value="{{ session.Fname }}">
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <script>
+        {% for message in messages %}
+          alert("{{ message }}");
+        {% endfor %}
+      </script>
+    {% endif %}
+  {% endwith %}
     <div>
         <!-- Function Buttons -->
         <button id="Clear">Clear cart</button>

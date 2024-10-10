@@ -12,7 +12,7 @@
             <h1>ABC Learning Resource Center</h1>
         </div>
         <div>
-            Borrow receipt
+            Return Receipt
         </div>
     </div>
 
@@ -20,12 +20,15 @@
         <h2>Transaction Data</h2>
 
         <h4>Transaction No.: {{ transaction_data[0].TransactionNo }} <br></h4>
-        <h4>Date Borrowed: {{ transaction_data[0].Borrowed }} <br></h4>
-        <h4>Due By:  {{ transaction_data[0].Due }} <br></h4>
+        <h4>Date Returned: {{ transaction_data[0].Borrowed }} <br></h4>
         <table>
             <tr>
                 <th>ISBN</th>
                 <th>Title</th>
+                <th>Date Borrowed</th>
+                <th>Transaction No.</th>
+                <th>Type of Transaction</th>
+                <th>Overdue</th>
             </tr>
             {% for book in transaction_data[0].Items %}
             <tr>
@@ -35,10 +38,17 @@
             {% endfor %}
         </table><br>
 
-        <h2>By signing, I confirm receipt of the books in good condition and agree to pay ₱20 per day for late returns, with full payment required for any loss or damage.</h2>
+        <h2>This is to certify that the above information is true and correct.</h2>
         <br><br><br><br>
-        <h4 style="text-align: center;">{{ transaction_data[0].Name }}</h4>
-        <h4 style="text-align: center;">Signature over printed name</h4>
+        <div>
+        <h4 style="text-align: left;">User name</h4>
+        <h4 style="text-align: left;">Librarian</h4>
+        </div>
+        <div>
+            <h4 style="text-align: right;">Client name</h4>
+            <h4 style="text-align: right;">member</h4>
+            <h4 style="text-align: right;">member ID</h4>
+            </div>
     </div>
 
 </body>

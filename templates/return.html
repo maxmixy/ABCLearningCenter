@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ABC Learning Resource Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminStyle.css') }}" />
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h1>ABC Learning Resource Center</h1>
+        </div>
+        <div>Return Transactions</div>
+    </div>
+
+    {% if session.role == 'administrator' %} {% include 'navbar.html' %} {% endif %}
+
+    <div class="book-info">
+        Enter Member's ID No.:<br/>
+        <form method="GET" action="{{ url_for('returning') }}">
+            <input type="text" id="userID" name="userID" value="{{request.args.get('userID', '') }}" />
+            <button type="submit">Search</button>
+        </form>
+        {% if borrowed_books %}
+        <table id="reserved-books-table">
+            <thead>
+                <tr>
+                    <th/>
+                    <th>Title</th>
+                    <th>ISBN</th>
+                    <th>Date Borrowed</th>
+                    <th>Transaction No.</th>
+                    <th>Penalty Fee</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="reserved-books-tbody">
+                {% for item in borrowed_books %}
+                <tr>
+                    
+                    {% if item[4] == 0 %}
+                    <td>
+                        <input type="radio" id="action-{{ loop.index0 }}-return-pay" name="action-{{ loop.index0 }}" value="return-and-pay">
+                        <label for="action-{{ loop.index0 }}-return-pay">Return and pay</label>
+                    </td>
+                    {% elif item[5] == 1 %}
+                        <td>
+                            <input type="radio" id="action-{{ loop.index0 }}-pay" name="action-{{ loop.index0 }}" value="pay-only">
+                            <label for="action-{{ loop.index0 }}-pay">Pay only</label>
+                        </td>
+                        {% else %}
+                        <td>
+                            <input type="radio" id="action-{{ loop.index0 }}-return-pay" name="action-{{ loop.index0 }}" value="return-and-pay">
+                            <label for="action-{{ loop.index0 }}-return-pay">Return and pay</label>
+                            <input type="radio" id="action-{{ loop.index0 }}" name="action-{{ loop.index0 }}" value="return-only">
+                            <label for="action-{{ loop.index0 }}">Return only</label>
+                        </td>
+                        {% endif %}
+                    </td>
+                    <td>{{ item[0] }}</td>
+                    <td>{{ item[1] }}</td>
+                    <td>{{ item[2] }}</td>
+                    <td>{{ item[3] }}</td>
+                    <td>{{ item[4] }}</td>
+                    <td>{% if item[5] == 0 %}Unreturned{% else %}Returned but Unpaid{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No borrowed books found.</p>
+        {% endif %}
+        
+        <div id="transaction-receipt"></div>
+    </div>
+
+        <!-- Confirm Borrowing Button -->
+        <button id="Return" class="btn btn-success" onclick="processReturn()">Process</button>
+    
+
+    <script>
+        
+        const radioButtons = document.querySelectorAll('input[type="radio"]');
+        radioButtons.forEach(button => {
+            button.addEventListener('change', function() {
+                const selectedAction = this.value;
+                const row = this.parentNode.parentNode;
+                const ISBN = row.cells[1].textContent;
+                console.log(`Selected action for ${ISBN}: ${selectedAction}`);
+            });
+        });
+
+        window.processReturn = function() {
+            console.log("Button clicked!");
+            const rows = document.querySelectorAll('#reserved-books-tbody tr');
+            let hasProcessed = false;
+          
+            rows.forEach((row, index) => {
+              const radioButtons = row.querySelectorAll('input[type="radio"]');
+              let selectedAction = null;
+          
+              radioButtons.forEach((radioButton) => {
+                if (radioButton.checked) {
+                  selectedAction = radioButton.value;
+                }
+              });
+          
+              if (selectedAction) {
+                const item = borrowed_books[index];
+                const isbn = item[1];
+                const bookTitle = item[0];
+                const author = item[2];
+                const borrowerName = item[3];
+                const borrowDate = item[4];
+                const returnDate = new Date().toISOString().slice(0, 10); // current date
+                const penaltyFee = item[5];
+                const transactionNo = item[6];
+          
+                switch (selectedAction) {
+                  case "return-and-pay":
+                    // Move data from "Reserved Books" table to "Returned Books" table
+                    fetch('/returnpay', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        isbn,
+                        bookTitle,
+                        author,
+                        borrowerName,
+                        borrowDate,
+                        returnDate,
+                        penaltyFee,
+                        transactionNo
+                      })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                      console.log(`Book moved to Returned Books table: ${isbn}`);
+                      hasProcessed = true;
+                    })
+                    .catch(error => console.error('Error moving book:', error));
+                    break;
+                    case "return-only":
+                    // Update the borrowed_books table to mark the book as returned
+                        fetch('/update-borrowed-book', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            isbn,
+                            transactionNo
+                        })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                        console.log(`Book marked as returned in borrowed_books table: ${isbn}`);
+                        hasProcessed = true;
+                        })
+                        .catch(error => console.error('Error updating borrowed book:', error));
+                    break;
+                  case "pay-only":
+                    // Code to pay for the book with the selected ISBN
+                    console.log(`Pay only for ISBN ${isbn}`);
+                    hasProcessed = true;
+                    break;
+                  default:
+                    console.error("Invalid action selected");
+                }
+              }
+            });
+          
+            if (!hasProcessed) {
+              alert("Please select an action for at least one book");
+            }
+          }
+    </script>
+</body>
+
+</html>

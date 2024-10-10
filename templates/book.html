@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ABC Learning Resource Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminStyle.css') }}" />
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h1>ABC Learning Resource Center</h1>
+        </div>
+        <div>Collection Maintenance</div>
+    </div>
+
+    {% if session.role == 'administrator' %} {% include 'navbar.html' %} {% endif %}
+
+    <div class="infobar">
+        <!-- Book Information Section -->
+        <div id="book-info" style="height: 600px;">
+            <h3>Book Information</h3>
+            <div class="row">
+                <div class="column">
+                    <p><strong>ISBN:</strong> <input type="text" id="isbn" value="{{ book.ISBN }}" readonly></p>
+                    <p><strong>Title:</strong> <input type="text" id="title" value="{{ book.title }}" readonly></p>
+                    <p><strong>Author:</strong> <input type="text" id="author" value="{{ book.author }}" readonly></p>
+                    <p><strong>Abstract:</strong> <textarea id="abstract" readonly>{{ book.abstract }}</textarea></p>
+                </div>
+                <div class="column">
+                    <p><strong>Description:</strong> <textarea id="description" readonly>{{ book.description }}</textarea></p>
+                    <p><strong>Publisher:</strong> <input type="text" id="publisher" value="{{ book.publisher }}" readonly></p>
+                    <p><strong>Copyright Year:</strong> <input type="number" id="copyrightyear" value="{{ book.copyrightyear }}" readonly></p>
+                    <p><strong>Category:</strong> <input type="text" id="category" value="{{ book.category }}" readonly></p>
+                    <p><strong>Unit Price:</strong> <input type="number" id="unitprice" value="{{ book.unitprice }}" readonly></p>
+                    <p><strong>Available:</strong> <input type="number" id="instock" value="{{ book.stock.InStock }}" readonly></p>
+                </div>
+            </div>
+
+            <!-- Reservation -->
+            <div id="reservation">
+                <button id="edit">Edit</button>
+                <button id="save" style="display: none;">Save</button>
+                <button id="insert">Add New Book</button>
+                <button id="delete-book" onclick="deleteBook('{{ book.ISBN }}')">Delete</button>
+                <span id="reservation-message"></span>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div id="navigation-controls">
+                <button id="prev-book" {% if current_index == 1 %}class="hidden"{% endif %}>Previous</button>
+                <button id="next-book" {% if current_index == total_books %}class="hidden"{% endif %}>Next</button>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div id="filter-section" style="height: 600px;">
+            <h3>Filter Books</h3>
+            <form method="GET" action="{{ url_for('book') }}">
+                <label for="category">Category:</label>
+                <select id="category" name="category">
+                    <option value="">Select Category</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" value="{{request.args.get('title', '') }}">
+                <label for="author">Author:</label>
+                <input type="text" id="author" name="author" value="{{ request.args.get('author', '') }}">
+                <label for="isbn">ISBN:</label>
+                <input type="text" id="isbn" name="isbn" value="{{ request.args.get('isbn', '') }}">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+
+    
+    <script>
+        var cart = {{ session.cart | tojson }};
+
+        document.getElementById('prev-book').onclick = function() {
+            window.location.href = "{{ prev_url }}";
+        };
+
+        document.getElementById('next-book').onclick = function() {
+            window.location.href = "{{ next_url }}";
+        };
+
+        document.getElementById('edit').onclick = function() {
+            var fields = document.querySelectorAll('#book-info input, #book-info textarea');
+            for (var i = 0; i < fields.length; i++) {
+                fields[i].readOnly = false;
+            }
+            document.getElementById('edit').style.display = 'none';
+            document.getElementById('save').style.display = 'block';
+        };
+    
+        document.getElementById('save').onclick = function() {
+            var isbn = document.getElementById('isbn').value;
+            var title = document.getElementById('title').value;
+            var author = document.getElementById('author').value;
+            var abstract = document.getElementById('abstract').value;
+            var description = document.getElementById('description').value;
+            var publisher = document.getElementById('publisher').value;
+            var copyrightyear = document.getElementById('copyrightyear').value;
+            var category = document.getElementById('category').value;
+            var unitprice = document.getElementById('unitprice').value;
+            var instock = document.getElementById('instock').value;
+        
+            // Check if the ISBN already exists in the database
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '{{ url_for("check_isbn") }}?isbn=' + isbn, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.exists) {
+                        // Send an AJAX request to update the book details in the database
+                        var xhrUpdate = new XMLHttpRequest();
+                        xhrUpdate.open('POST', '{{ url_for("update_book") }}', true);
+                        xhrUpdate.setRequestHeader('Content-Type', 'application/json');
+                        xhrUpdate.send(JSON.stringify({
+                            'isbn': isbn,
+                            'title': title,
+                            'author': author,
+                            'abstract': abstract,
+                            'description': description,
+                            'publisher': publisher,
+                            'copyrightyear': copyrightyear,
+                            'category': category,
+                            'unitprice': unitprice,
+                            'instock': instock
+                        }));
+                        xhrUpdate.onload = function() {
+                            if (xhrUpdate.status === 200) {
+                                console.log('Book updated successfully!');
+                            } else {
+                                console.error('Error updating book:', xhrUpdate.statusText);
+                            }
+                        };
+                        xhrUpdate.onerror = function() {
+                            console.error('Error updating book:', xhrUpdate.statusText);
+                        };
+                    } else {
+                        // Send an AJAX request to insert the new book into the database
+                        var xhrInsert = new XMLHttpRequest();
+                        xhrInsert.open('POST', '{{ url_for("insert_book") }}', true);
+                        xhrInsert.setRequestHeader('Content-Type', 'application/json');
+                        xhrInsert.send(JSON.stringify({
+                            'isbn': isbn,
+                            'title': title,
+                            'author': author,
+                            'abstract': abstract,
+                            'description': description,
+                            'publisher': publisher,
+                            'copyrightyear': copyrightyear,
+                            'category': category,
+                            'unitprice': unitprice,
+                            'instock': instock
+                        }));
+                        xhrInsert.onload = function() {
+                            if (xhrInsert.status === 200) {
+                                console.log('Book inserted successfully!');
+                            } else {
+                                console.error('Error inserting book:', xhrInsert.statusText);
+                            }
+                        };
+                        xhrInsert.onerror = function() {
+                            console.error('Error inserting book:', xhrInsert.statusText);
+                        };
+                    }
+                } else {
+                    console.error('Error checking ISBN:', xhr.statusText);
+                }
+            };
+            xhr.onerror = function() {
+                console.error('Error checking ISBN:', xhr.statusText);
+            };
+            xhr.send();
+        
+            // Make the fields read-only again
+            var fields = document.querySelectorAll('#book-info input, #book-info textarea');
+            for (var i = 0; i < fields.length; i++) {
+                fields[i].readOnly = true;
+            }
+            document.getElementById('edit').style.display = 'block';
+            document.getElementById('save').style.display = 'none';
+            document.getElementById('insert').style.display = 'block';
+        };//end of save function
+
+        document.getElementById('insert').onclick = function() {
+            var fields = document.querySelectorAll('#book-info input, #book-info textarea');
+            for (var i = 0; i < fields.length; i++) {
+                fields[i].value = '';
+                fields[i].readOnly = false;
+            }
+            document.getElementById('edit').style.display = 'none';
+            document.getElementById('save').style.display = 'block';
+            document.getElementById('insert').style.display = 'none';
+        };
+
+        function deleteBook(isbn) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '{{ url_for("delete_book") }}', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({'isbn': isbn}));
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    console.log('Book deleted successfully!');
+                    window.location.href = '{{ url_for("book") }}';
+                } else {
+                    console.error('Error deleting book:', xhr.statusText);
+                }
+            };
+            xhr.onerror = function() {
+                console.error('Error deleting book:', xhr.statusText);
+            };
+        };
+          
+    </script>
+    
+</body>
+
+</html>
